@@ -33,7 +33,6 @@ void Tensor::computeStrides() {
     }
 }
 
-
 // Convenience accessors
 float& Tensor::at(const int i) {
   	assert(shape.size() == 1 && device == Device::CPU);
@@ -61,6 +60,18 @@ float& Tensor::at(const std::vector<int>& index) {
         local += index[i] * strides[i];
 	}
 	return cpuData[local];
+}
+
+void Tensor::reshape(const std::vector<int>& shape_) {
+    int newSize = std::accumulate(shape_.begin(), shape_.end(), 1, std::multiplies<int>());
+    assert(totalSize == newSize);
+    shape = shape_;
+    computeStrides();
+}
+
+void Tensor::flatten() {
+    shape = {totalSize};
+    strides = {1};
 }
 
 void Tensor::fillCpu(float val) {

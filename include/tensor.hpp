@@ -19,8 +19,13 @@ public:
     float& at(int i, int j, int k);
     float& at(const std::vector<int>& index);
 
+    // Utility
     void fill(float val);
 
+    void reshape(const std::vector<int>& shape_);
+    void flatten();
+
+    // Arithmetic
 	void addTensor(const Tensor& other);
     void addScalar(float val);
 
@@ -36,7 +41,7 @@ public:
     void negate();
 
     void ReLU();
-    void sigmoid(); //std::exp and expf
+    void sigmoid();
     void tanh();
     void LReLU(const float alpha);
     void ELU(const float alpha);
@@ -46,6 +51,7 @@ public:
     void exp();
     void log();
 
+    // Gradiant
 	void zeroGrad();
 
     // testing util
@@ -121,7 +127,7 @@ private:
     void negateGpu();
 
     void ReLUGpu();
-    void sigmoidGpu(); //std::exp and expf
+    void sigmoidGpu();
     void tanhGpu();
     void LReLUGpu(const float alpha);
     void ELUGpu(const float alpha);
