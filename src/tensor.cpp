@@ -147,8 +147,8 @@ void Tensor::transpose(const std::vector<int>& order) {
     contiguous = false;
 }
 
-Tensor Tensor::broadcast(const std::vector<int>& newShape) {
-    assert(newShape.size() > shape.size());
+Tensor Tensor::broadcast(const std::vector<int>& newShape) { // BROKEN IDK MAN
+    assert(newShape.size() >= shape.size());
 
     for (int i = 0; i < shape.size(); ++i) {
         int dim = shape[shape.size() - 1 - i];

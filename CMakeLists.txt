@@ -6,18 +6,19 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-set(CMAKE_CUDA_STANDARD 17)
-set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-
 find_package(CUDAToolkit)
 
 set(SOURCES
     src/tensor.cpp
+    src/logger.cpp
     src/main.cpp
 )
 
 if(CUDAToolkit_FOUND)
     message(STATUS "CUDA toolkit found, building with GPU support")
+
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
     list(APPEND SOURCES src/tensor_gpu.cu)
 
