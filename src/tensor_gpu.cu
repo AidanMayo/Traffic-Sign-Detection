@@ -87,6 +87,19 @@ void Tensor::multiplyScalarGpu(const float val) {
     cudaDeviceSynchronize();
 }
 
+__global__ void multiplyBiasKernel(float* a, const float* bias, int channels, int size, int totalSize) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < totalSize) {
+        int c = (idx / size) % channels;
+        a[idx] *= bias[c];
+    }
+}
+
+void Tensor::multiplyBiasGpu(const Tensor& bias) {
+    multiplyBiasKernel<<<(totalSize + 255)/256, 256>>>(gpuData, bias.gpuData, shape[1], shape[2] * shape[3], totalSize);
+    cudaDeviceSynchronize();
+}
+
 __global__ void divideTensorKernel(float*a, const float* b, int size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < size) a[idx] /= b[idx];

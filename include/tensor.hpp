@@ -37,6 +37,7 @@ public:
 
     void multiplyTensor(const Tensor& other);
     void multiplyScalar(float val);
+    void multiplyBias(const Tensor& bias);
 
     void divideTensor(const Tensor& other);
     void divideScalar(float val);
@@ -91,6 +92,7 @@ private:
 
     void multiplyTensorCpu(const Tensor& other);
     void multiplyScalarCpu(float val);
+    void multiplyBiasCpu(const Tensor& bias);
 
     void divideTensorCpu(const Tensor& other);
     void divideScalarCpu(float val);
@@ -126,6 +128,7 @@ private:
 
     void multiplyTensorGpu(const Tensor& other);
     void multiplyScalarGpu(float val);
+    void multiplyBiasGpu(const Tensor& bias);
 
     void divideTensorGpu(const Tensor& other);
     void divideScalarGpu(float val);

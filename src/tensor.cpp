@@ -192,6 +192,21 @@ void Tensor::multiplyScalarCpu(const float val) {
     }
 }
 
+void Tensor::multiplyBiasCpu(const Tensor &bias) {
+    int N = shape[0], C = shape[1], H = shape[2], W = shape[3];
+    for (int n = 0; n < N; ++n) {
+        for (int c = 0; c < C; ++c) {
+            float b = bias.cpuData[c];
+            for (int h = 0; h < H; ++h) {
+                for (int w = 0; w < W; ++w) {
+                    int idx = n * strides[0] + c * strides[1] + h * strides[2] + w * strides[3];
+                    cpuData[idx] *= b;
+                }
+            }
+        }
+    }
+}
+
 void Tensor::divideTensorCpu(const Tensor &other) {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
         cpuData[i] /= other.cpuData[i];
@@ -359,6 +374,20 @@ void Tensor::multiplyScalar(const float val) {
 #ifdef USE_CUDA
     else {
         multiplyScalarGpu(val);
+    }
+#endif
+}
+
+void Tensor::multiplyBias(const Tensor& bias) { // image only
+    assert(shape.size() == 4);
+    assert(bias.shape.size() == 1);
+    assert(shape[1] == bias.shape[0]);
+    if (device == Device::CPU) {
+        multiplyBiasCpu(bias);
+    }
+#ifdef USE_CUDA
+    else {
+        multiplyBiasGpu(bias);
     }
 #endif
 }

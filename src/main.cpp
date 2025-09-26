@@ -150,7 +150,7 @@ void testTensorOps(Tensor& t1, Tensor& t2, const std::string& deviceName) {
 }
 
 int main() {
-    const std::vector<int> shape = {4, 3, 32, 32};
+    const std::vector<int> shape = {4, 3, 512, 512};
 
     Tensor inputCpu(shape, Device::CPU);
 
@@ -161,9 +161,14 @@ int main() {
     bias.edit({1}, 3);
     bias.edit({2}, 4);
 
+    auto start = std::chrono::high_resolution_clock::now();
     inputCpu.addBias(bias);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "CPU Bias Time: "
+              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+              << " microseconds" << std::endl;
 
-    inputCpu.printImageTensor();
+    // inputCpu.printImageTensor();
 
     // CPU tensors
     // Tensor cpuT1(shape, Device::CPU);
@@ -183,9 +188,15 @@ int main() {
         biasGpu.edit({1}, 3);
         biasGpu.edit({2}, 4);
 
+        start = std::chrono::high_resolution_clock::now();
         inputGpu.addBias(biasGpu);
+        end = std::chrono::high_resolution_clock::now();
+        std::cout << "GPU Bias Time: "
+                  << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
+                  << " microseconds" << std::endl;
 
-        inputGpu.printImageTensor();
+
+        // inputGpu.printImageTensor();
 
         // Tensor gpuT1(shape, Device::GPU);
         // Tensor gpuT2(shape, Device::GPU);
