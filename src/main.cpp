@@ -145,24 +145,51 @@ void testTensorOps(Tensor& t1, Tensor& t2, const std::string& deviceName) {
               << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
               << " us" << std::endl;
 
-    std::cout << deviceName << " sample value: " << t1.at({0,0,0}) << std::endl;
+    t1.printShape();
+    t1.printImageTensor();
 }
 
 int main() {
-    const std::vector<int> shape = {512, 512, 512}; // smaller for faster testing
+    const std::vector<int> shape = {4, 3, 32, 32};
+
+    Tensor inputCpu(shape, Device::CPU);
+
+    inputCpu.fill(1.0f);
+
+    Tensor bias({3}, Device::CPU);
+    bias.edit({0}, 2);
+    bias.edit({1}, 3);
+    bias.edit({2}, 4);
+
+    inputCpu.addBias(bias);
+
+    inputCpu.printImageTensor();
 
     // CPU tensors
-    Tensor cpuT1(shape, Device::CPU);
-    Tensor cpuT2(shape, Device::CPU);
-    testTensorOps(cpuT1, cpuT2, "CPU");
+    // Tensor cpuT1(shape, Device::CPU);
+    // Tensor cpuT2(shape, Device::CPU);
+    // testTensorOps(cpuT1, cpuT2, "CPU");
 
 #ifdef USE_CUDA
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
     if (deviceCount > 0) {
-        Tensor gpuT1(shape, Device::GPU);
-        Tensor gpuT2(shape, Device::GPU);
-        testTensorOps(gpuT1, gpuT2, "GPU");
+        Tensor inputGpu(shape, Device::GPU);
+
+        inputGpu.fill(1.0f);
+
+        Tensor biasGpu({3}, Device::GPU);
+        biasGpu.edit({0}, 2);
+        biasGpu.edit({1}, 3);
+        biasGpu.edit({2}, 4);
+
+        inputGpu.addBias(biasGpu);
+
+        inputGpu.printImageTensor();
+
+        // Tensor gpuT1(shape, Device::GPU);
+        // Tensor gpuT2(shape, Device::GPU);
+        // testTensorOps(gpuT1, gpuT2, "GPU");
     } else {
         std::cout << "No CUDA device found. Skipping GPU tests." << std::endl;
     }

@@ -34,6 +34,19 @@ void Tensor::addScalarGpu(const float val) {
     cudaDeviceSynchronize();
 }
 
+__global__ void addBiasKernel(float* a, const float* bias, int channels, int size, int totalSize) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < totalSize) {
+        int c = (idx / size) % channels;
+        a[idx] += bias[c];
+    }
+}
+
+void Tensor::addBiasGpu(const Tensor& bias) {
+    addBiasKernel<<<(totalSize + 255)/256, 256>>>(gpuData, bias.gpuData, shape[1], shape[2] * shape[3], totalSize);
+    cudaDeviceSynchronize();
+}
+
 __global__ void subtractTensorKernel(float*a, const float* b, int size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < size) a[idx] -= b[idx];
@@ -238,5 +251,10 @@ void Tensor::toCpu() {
 void Tensor::copyCpu() {
     if (gpuData == nullptr) return;
     cudaMemcpy(cpuData.data(), gpuData, totalSize * sizeof(float), cudaMemcpyDeviceToHost);
+}
+
+void Tensor::copyGpu() {
+    if (gpuData == nullptr) return;
+    cudaMemcpy(gpuData, cpuData.data(), totalSize * sizeof(float), cudaMemcpyHostToDevice);
 }
 

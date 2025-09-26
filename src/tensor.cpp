@@ -62,6 +62,69 @@ float& Tensor::at(const std::vector<int>& index) {
 	return cpuData[local];
 }
 
+void Tensor::edit(const std::vector<int>& index, float val) {
+    assert(index.size() == shape.size());
+#ifdef USE_CUDA
+    if (device == Device::GPU) copyCpu();
+#endif
+    int local = 0;
+    for (std::size_t i = 0; i < shape.size(); ++i) {
+        assert(index[i] >= 0 && index[i] < shape[i]);
+        local += index[i] * strides[i];
+    }
+    cpuData[local] = val;
+#ifdef USE_CUDA
+    if (device == Device::GPU) copyGpu();
+#endif
+}
+
+void Tensor::printShape() {
+    std::cout << "Tensor shape: [";
+    for (size_t i = 0; i < shape.size(); ++i) {
+        std::cout << shape[i];
+        if (i != shape.size() - 1) std::cout << ", ";
+    }
+    std::cout << "]" << std::endl;
+}
+
+void Tensor::printData() {
+#ifdef USE_CUDA
+    if (device == Device::GPU) copyCpu();
+#endif
+    std::cout << "Tensor data: [";
+    for (size_t i = 0; i < cpuData.size(); ++i) {
+        std::cout << cpuData[i];
+        if (i != cpuData.size() - 1) std::cout << ", ";
+    }
+    std::cout << "]" << std::endl;
+}
+
+void Tensor::printImageTensor() {
+    assert(shape.size() == 4);
+#ifdef USE_CUDA
+    if (device == Device::GPU) copyCpu();
+#endif
+    int N = shape[0];
+    int C = shape[1];
+    int H = shape[2];
+    int W = shape[3];
+
+    for (int n = 0; n < N; ++n) {
+        std::cout << "Batch " << n << ":\n";
+        for (int c = 0; c < C; ++c) {
+            std::cout << " Channel " << c << ":\n";
+            for (int h = 0; h < H; ++h) {
+                for (int w = 0; w < W; ++w) {
+                    std::cout << cpuData[n * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]] << " ";
+                }
+                std::cout << "\n";
+            }
+            std::cout << "\n";
+        }
+        std::cout << "------------------\n";
+    }
+}
+
 void Tensor::reshape(const std::vector<int>& shape_) {
     int newSize = std::accumulate(shape_.begin(), shape_.end(), 1, std::multiplies<int>());
     assert(totalSize == newSize);
@@ -87,6 +150,21 @@ void Tensor::addTensorCpu(const Tensor &other) {
 void Tensor::addScalarCpu(const float val) {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
         cpuData[i] += val;
+    }
+}
+
+void Tensor::addBiasCpu(const Tensor &bias) {
+    int N = shape[0], C = shape[1], H = shape[2], W = shape[3];
+    for (int n = 0; n < N; ++n) {
+        for (int c = 0; c < C; ++c) {
+            float b = bias.cpuData[c];
+            for (int h = 0; h < H; ++h) {
+                for (int w = 0; w < W; ++w) {
+                    int idx = n * strides[0] + c * strides[1] + h * strides[2] + w * strides[3];
+                    cpuData[idx] += b;
+                }
+            }
+        }
     }
 }
 
@@ -221,6 +299,20 @@ void Tensor::addScalar(const float val) {
 #ifdef USE_CUDA
     else {
         addScalarGpu(val);
+    }
+#endif
+}
+
+void Tensor::addBias(const Tensor& bias) {
+    assert(shape.size() == 4); // image channeled bias
+    assert(bias.shape.size() == 1); // bias application
+    assert(shape[1] == bias.shape[0]); // bias can be properly added
+    if (device == Device::CPU) {
+        addBiasCpu(bias);
+    }
+#ifdef USE_CUDA
+    else {
+        addBiasGpu(bias);
     }
 #endif
 }

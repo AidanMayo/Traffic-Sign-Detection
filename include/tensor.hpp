@@ -19,6 +19,8 @@ public:
     float& at(int i, int j, int k);
     float& at(const std::vector<int>& index);
 
+    void edit(const std::vector<int>& index, float val);
+
     // Utility
     void fill(float val);
 
@@ -28,6 +30,7 @@ public:
     // Arithmetic
 	void addTensor(const Tensor& other);
     void addScalar(float val);
+    void addBias(const Tensor& bias);
 
     void subtractTensor(const Tensor& other);
     void subtractScalar(float val);
@@ -55,8 +58,9 @@ public:
 	void zeroGrad();
 
     // testing util
-    void printShape() const;
-    void printData() const;
+    void printShape();
+    void printData();
+    void printImageTensor();
 
 #ifdef USE_CUDA
     void toGpu();
@@ -80,6 +84,7 @@ private:
     void fillCpu(float val);
     void addTensorCpu(const Tensor& other);
     void addScalarCpu(float val);
+    void addBiasCpu(const Tensor& bias);
 
     void subtractTensorCpu(const Tensor& other);
     void subtractScalarCpu(float val);
@@ -114,6 +119,7 @@ private:
     void fillGpu(float val);
     void addTensorGpu(const Tensor& other);
     void addScalarGpu(float val);
+    void addBiasGpu(const Tensor& bias);
 
     void subtractTensorGpu(const Tensor& other);
     void subtractScalarGpu(float val);
@@ -140,6 +146,7 @@ private:
     void zeroGradGpu();
 
     void copyCpu();
+    void copyGpu();
 
 #endif
 };
