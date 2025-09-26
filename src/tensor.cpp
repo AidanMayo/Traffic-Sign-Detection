@@ -2,11 +2,13 @@
 #include <algorithm>
 #include <iostream>
 #include <ostream>
+#include <set>
 
 Tensor::Tensor() : device(Device::CPU) {}
 
 Tensor::Tensor(const std::vector<int>& shape_, Device dev) : shape(shape_), device(dev) {
     totalSize = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<int>());
+    contiguous = true;
 	cpuData.resize(totalSize, 0.0f);
 	cpuGrad.resize(totalSize, 0.0f);
 	computeStrides();
@@ -24,29 +26,13 @@ Tensor::~Tensor() {
 #endif
 }
 
-void Tensor::computeStrides() {
+void Tensor::computeStrides() { // contiguous!!
  	strides.resize(shape.size());
     int stride = 1;
     for (int i = shape.size() - 1; i >= 0; --i) {
       	strides[i] = stride;
         stride *= shape[i];
     }
-}
-
-// Convenience accessors
-float& Tensor::at(const int i) {
-  	assert(shape.size() == 1 && device == Device::CPU);
-    return cpuData[i * strides[0]];
-}
-
-float& Tensor::at(const int i, const int j) {
-  	assert(shape.size() == 2 && device == Device::CPU);
-    return cpuData[i * strides[0] + j * strides[1]];
-}
-
-float& Tensor::at(const int i, const int j, const int k) {
-  	assert(shape.size() == 3 && device == Device::CPU);
-    return cpuData[i * strides[0] + j * strides[1] + k * strides[2]];
 }
 
 float& Tensor::at(const std::vector<int>& index) {
@@ -64,7 +50,7 @@ float& Tensor::at(const std::vector<int>& index) {
 
 void Tensor::edit(const std::vector<int>& index, float val) {
     assert(index.size() == shape.size());
-#ifdef USE_CUDA
+#ifdef USE_CUDA // this edit function needs to be made more efficient, it currently SUCKS
     if (device == Device::GPU) copyCpu();
 #endif
     int local = 0;
@@ -126,6 +112,8 @@ void Tensor::printImageTensor() {
 }
 
 void Tensor::reshape(const std::vector<int>& shape_) {
+    if (!contiguous) makeContiguous(); // we ONLY operate on contiguous tensors!
+
     int newSize = std::accumulate(shape_.begin(), shape_.end(), 1, std::multiplies<int>());
     assert(totalSize == newSize);
     shape = shape_;
@@ -133,9 +121,110 @@ void Tensor::reshape(const std::vector<int>& shape_) {
 }
 
 void Tensor::flatten() {
+    if (!contiguous) makeContiguous();
+
     shape = {totalSize};
     strides = {1};
 }
+
+void Tensor::transpose(const std::vector<int>& order) {
+    assert(order.size() == shape.size());
+
+    std::set<int> elem(order.begin(), order.end());
+    assert(elem.size() == shape.size());
+
+    std::vector<int> newShape(shape.size());
+    std::vector<int> newStrides(strides.size());
+
+    for (int i = 0; i < shape.size(); ++i) {
+        assert(order[i] >= 0 && order[i] < shape.size());
+        newShape[i] = shape[order[i]];
+        newStrides[i] = strides[order[i]];
+    }
+
+    shape = newShape;
+    strides = newStrides;
+    contiguous = false;
+}
+
+Tensor Tensor::broadcast(const std::vector<int>& newShape) {
+    assert(newShape.size() > shape.size());
+
+    for (int i = 0; i < shape.size(); ++i) {
+        int dim = shape[shape.size() - 1 - i];
+        int newDim = newShape[newShape.size() - 1 - i];
+        assert(newDim == dim || dim == 1); // check if shape is broadcastable
+    }
+
+    Tensor result(newShape, device);
+
+    std::vector<int> mult(shape.size(), 0);
+    if (!shape.empty()) {
+        mult[shape.size() - 1] = 1;
+        for (int i = shape.size() - 2; i >= 0; --i) {
+            mult[i] = mult[i + 1] * shape[i + 1];
+        }
+    }
+
+    std::vector<int> index(newShape.size(), 0);
+    for (int i = 0; i < result.totalSize; ++i) {
+        int lin = 0;
+        for (int j = 0; j < shape.size(); ++j) {
+            int target = newShape.size() - shape.size() + j;
+            int idx = (shape[j] == 1) ? 0 : index[target];
+            lin += idx * mult[j];
+        }
+
+        result.cpuData[i] = cpuData[lin];
+
+        for (int j = newShape.size() - 1; j >= 0; --j) {
+            index[j]++;
+            if (index[j] < shape[j]) break;
+            index[j] = 0;
+        }
+    }
+
+    return result;
+}
+
+void Tensor::makeContiguous() {
+    if (contiguous) return;
+    if (device == Device::CPU) {
+        makeContiguousCpu();
+    }
+#ifdef USE_CUDA
+    else {
+        makeContiguousGpu();
+    }
+#endif
+}
+
+void Tensor::makeContiguousCpu() {
+    if (contiguous) return;
+
+    std::vector<float> newData(totalSize);
+
+    std::vector<int> index(shape.size(), 0);
+    for (int i = 0; i < totalSize; ++i) {
+        int linIdx = 0;
+        for (int j = 0; j < shape.size(); ++j) { // allows for multi dimensional work!!
+            linIdx += index[j] * strides[j];
+        }
+
+        newData[i] = cpuData[linIdx];
+
+        for (int j = shape.size() - 1; j >= 0; --j) {
+            index[j]++;
+            if (index[j] < shape[j]) break;
+            index[j] = 0;
+        }
+    }
+
+    cpuData = newData;
+    contiguous = true;
+    computeStrides();
+}
+
 
 void Tensor::fillCpu(float val) {
     std::fill(cpuData.begin(), cpuData.end(), val);

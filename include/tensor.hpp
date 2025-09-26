@@ -27,6 +27,12 @@ public:
     void reshape(const std::vector<int>& shape_);
     void flatten();
 
+    void transpose(const std::vector<int>& order);
+
+    Tensor broadcast(const std::vector<int>& newShape);
+
+    void makeContiguous(); // for now our function will mutate the current tensor to be contiguous, if needed a function that returns a new contiguous tensor will be made
+
     // Arithmetic
 	void addTensor(const Tensor& other);
     void addScalar(float val);
@@ -73,6 +79,8 @@ private:
 
     int totalSize;
 
+    bool contiguous;
+
     std::vector<int> shape;
     std::vector<int> strides;
 
@@ -81,6 +89,8 @@ private:
     std::vector<float> cpuGrad;
 
     void computeStrides();
+
+    void makeContiguousCpu();
 
     void fillCpu(float val);
     void addTensorCpu(const Tensor& other);
@@ -117,6 +127,8 @@ private:
     float* gpuGrad = nullptr;
 
     void freeGpuMemory();
+
+    void makeContiguousGpu();
 
     void fillGpu(float val);
     void addTensorGpu(const Tensor& other);

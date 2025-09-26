@@ -2,6 +2,49 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
+__global__ void makeContiguousKernel(float*a, float*b, int* shape, int* strides, int dims, int totalSize) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx >= totalSize) return;
+
+    int lin = idx;
+    int aIdx = 0;
+
+    for (int d = dims - 1; d >= 0; --d) {
+        int cur = lin % shape[d];
+        lin /= shape[d];
+        aIdx += cur * strides[d];
+    }
+
+    b[idx] = a[aIdx];
+}
+
+void Tensor::makeContiguousGpu() {
+    if (contiguous) return;
+
+    float* newData;
+
+    cudaMalloc(&newData, sizeof(float) * totalSize);
+
+    int* dShape;
+    int* dStrides;
+    cudaMalloc(&dShape, shape.size() * sizeof(int));
+    cudaMalloc(&dStrides, strides.size() * sizeof(int));
+    cudaMemcpy(dShape, shape.data(), sizeof(int) * shape.size(), cudaMemcpyHostToDevice);
+    cudaMemcpy(dStrides, strides.data(), sizeof(int) * strides.size(), cudaMemcpyHostToDevice);
+
+    makeContiguousKernel<<<(totalSize + 255)/256, 256>>>(gpuData, newData, dShape, dStrides, shape.size(), totalSize);
+
+    cudaFree(dShape);
+    cudaFree(dStrides);
+
+    cudaFree(gpuData);
+    gpuData = newData;
+
+    computeStrides();
+    contiguous = true;
+}
+
+
 __global__ void fillKernel(float* data, int size, float val) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx < size) {
