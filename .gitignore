@@ -1,0 +1,56 @@
+# --- Compiled Object Files ---
+*.o
+*.obj
+*.lo
+*.la
+*.al
+
+# --- Compiled Dynamic Libraries ---
+*.so
+*.dylib
+*.dll
+
+# --- Compiled Static Libraries ---
+*.a
+*.lib
+
+# --- Executables ---
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# --- Build Directories ---
+/build/
+/bin/
+/lib/
+/CMakeFiles/
+/CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# --- Debug/Release Directories ---
+/Debug/
+/Release/
+
+# --- Logs and Temporary Files ---
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# --- IDE/Editor Files ---
+.vscode/
+.idea/
+*.user
+*.workspace
+*.sublime-project
+*.sublime-workspace
+
+# --- OS-Specific Junk ---
+.DS_Store
+Thumbs.db
+ehthumbs.db
