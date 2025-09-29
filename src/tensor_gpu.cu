@@ -1,4 +1,5 @@
 #include "../include/tensor.hpp"
+#include "../include/logger.hpp"
 #include <cuda_runtime.h>
 #include <iostream>
 
@@ -22,22 +23,53 @@ void Tensor::makeContiguousGpu() {
     if (contiguous) return;
 
     float* newData;
+    cudaError_t err;
 
-    cudaMalloc(&newData, sizeof(float) * totalSize);
+    err = cudaMalloc(&newData, sizeof(float) * totalSize);
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("MALLOC", "makeContiguous", 0, 0, false, cudaGetErrorString(err));
+        return;
+    }
+    LOG_MEMORY_ALLOC("GPU", totalSize * sizeof(float), "makeContiguous newData");
 
     int* dShape;
     int* dStrides;
-    cudaMalloc(&dShape, shape.size() * sizeof(int));
-    cudaMalloc(&dStrides, strides.size() * sizeof(int));
+    err = cudaMalloc(&dShape, shape.size() * sizeof(int));
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("MALLOC", "makeContiguous", 0, 0, false, cudaGetErrorString(err));
+        cudaFree(newData);
+        return;
+    }
+    
+    err = cudaMalloc(&dStrides, strides.size() * sizeof(int));
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("MALLOC", "makeContiguous", 0, 0, false, cudaGetErrorString(err));
+        cudaFree(newData);
+        cudaFree(dShape);
+        return;
+    }
+    
     cudaMemcpy(dShape, shape.data(), sizeof(int) * shape.size(), cudaMemcpyHostToDevice);
     cudaMemcpy(dStrides, strides.data(), sizeof(int) * strides.size(), cudaMemcpyHostToDevice);
 
-    makeContiguousKernel<<<(totalSize + 255)/256, 256>>>(gpuData, newData, dShape, dStrides, shape.size(), totalSize);
+    int blockSize = 256;
+    int gridSize = (totalSize + blockSize - 1) / blockSize;
+    makeContiguousKernel<<<gridSize, blockSize>>>(gpuData, newData, dShape, dStrides, shape.size(), totalSize);
+    
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("KERNEL", "makeContiguousKernel", blockSize, gridSize, false, cudaGetErrorString(err));
+    } else {
+        LOG_CUDA_OP("KERNEL", "makeContiguousKernel", blockSize, gridSize, true, "");
+    }
 
     cudaFree(dShape);
     cudaFree(dStrides);
+    LOG_MEMORY_DEALLOC("GPU", (shape.size() + strides.size()) * sizeof(int), "makeContiguous temp arrays");
 
     cudaFree(gpuData);
+    LOG_MEMORY_DEALLOC("GPU", totalSize * sizeof(float), "makeContiguous old data");
+    
     gpuData = newData;
 
     computeStrides();
@@ -53,8 +85,23 @@ __global__ void fillKernel(float* data, int size, float val) {
 }
 
 void Tensor::fillGpu(float val) {
-    fillKernel<<<(totalSize + 255)/256, 256>>>(gpuData, totalSize, val);
+    int blockSize = 256;
+    int gridSize = (totalSize + blockSize - 1) / blockSize;
+    fillKernel<<<gridSize, blockSize>>>(gpuData, totalSize, val);
+    
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("KERNEL", "fillKernel", blockSize, gridSize, false, cudaGetErrorString(err));
+        return;
+    }
+    
     cudaDeviceSynchronize();
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("SYNC", "fillKernel", blockSize, gridSize, false, cudaGetErrorString(err));
+    } else {
+        LOG_CUDA_OP("KERNEL", "fillKernel", blockSize, gridSize, true, "");
+    }
 }
 
 __global__ void addTensorKernel(float*a, const float* b, int size) {
@@ -86,8 +133,23 @@ __global__ void addBiasKernel(float* a, const float* bias, int channels, int siz
 }
 
 void Tensor::addBiasGpu(const Tensor& bias) {
-    addBiasKernel<<<(totalSize + 255)/256, 256>>>(gpuData, bias.gpuData, shape[1], shape[2] * shape[3], totalSize);
+    int blockSize = 256;
+    int gridSize = (totalSize + blockSize - 1) / blockSize;
+    addBiasKernel<<<gridSize, blockSize>>>(gpuData, bias.gpuData, shape[1], shape[2] * shape[3], totalSize);
+    
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("KERNEL", "addBiasKernel", blockSize, gridSize, false, cudaGetErrorString(err));
+        return;
+    }
+    
     cudaDeviceSynchronize();
+    err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("SYNC", "addBiasKernel", blockSize, gridSize, false, cudaGetErrorString(err));
+    } else {
+        LOG_CUDA_OP("KERNEL", "addBiasKernel", blockSize, gridSize, true, "");
+    }
 }
 
 __global__ void subtractTensorKernel(float*a, const float* b, int size) {
@@ -279,12 +341,22 @@ void Tensor::zeroGradGpu() {
 
 void Tensor::freeGpuMemory() {
     if (gpuData) {
-        cudaFree(gpuData);
+        cudaError_t err = cudaFree(gpuData);
+        if (err != cudaSuccess) {
+            LOG_CUDA_OP("FREE", "gpuData", 0, 0, false, cudaGetErrorString(err));
+        } else {
+            LOG_MEMORY_DEALLOC("GPU", totalSize * sizeof(float), "Tensor data");
+        }
         gpuData = nullptr;
     }
 
     if (gpuGrad) {
-        cudaFree(gpuGrad);
+        cudaError_t err = cudaFree(gpuGrad);
+        if (err != cudaSuccess) {
+            LOG_CUDA_OP("FREE", "gpuGrad", 0, 0, false, cudaGetErrorString(err));
+        } else {
+            LOG_MEMORY_DEALLOC("GPU", totalSize * sizeof(float), "Tensor gradients");
+        }
         gpuGrad = nullptr;
     }
 }
@@ -292,9 +364,31 @@ void Tensor::freeGpuMemory() {
 
 void Tensor::toGpu() {
     if (gpuData != nullptr) return;
-    cudaMalloc(&gpuData, totalSize * sizeof(float));
-    cudaMalloc(&gpuGrad, totalSize * sizeof(float));
-    cudaMemcpy(gpuData, cpuData.data(), totalSize * sizeof(float), cudaMemcpyHostToDevice);
+    
+    cudaError_t err = cudaMalloc(&gpuData, totalSize * sizeof(float));
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("MALLOC", "toGpu", 0, 0, false, cudaGetErrorString(err));
+        return;
+    }
+    LOG_MEMORY_ALLOC("GPU", totalSize * sizeof(float), "Tensor data");
+    
+    err = cudaMalloc(&gpuGrad, totalSize * sizeof(float));
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("MALLOC", "toGpu", 0, 0, false, cudaGetErrorString(err));
+        cudaFree(gpuData);
+        return;
+    }
+    LOG_MEMORY_ALLOC("GPU", totalSize * sizeof(float), "Tensor gradients");
+    
+    err = cudaMemcpy(gpuData, cpuData.data(), totalSize * sizeof(float), cudaMemcpyHostToDevice);
+    if (err != cudaSuccess) {
+        LOG_CUDA_OP("MEMCPY", "toGpu", 0, 0, false, cudaGetErrorString(err));
+        cudaFree(gpuData);
+        cudaFree(gpuGrad);
+        return;
+    }
+    
+    LOG_DEBUG("Successfully moved tensor to GPU");
     device = Device::GPU;
 }
 

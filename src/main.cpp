@@ -1,23 +1,28 @@
 #include "tensor.hpp"
+#include "logger.hpp"
 #include <iostream>
 #include <chrono>
 #include <cuda_runtime_api.h>
 
 void testTensorOps(Tensor& t1, Tensor& t2, const std::string& deviceName) {
+    LOG_INFO("Starting tensor operations test on " + deviceName);
+    
     auto start = std::chrono::high_resolution_clock::now();
     t1.fill(1.0f);
     t2.fill(2.0f);
     auto end = std::chrono::high_resolution_clock::now();
-    std::cout << deviceName << " Fill Time: "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
-              << " us" << std::endl;
+    long long fillTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    
+    std::cout << deviceName << " Fill Time: " << fillTime << " us" << std::endl;
+    LOG_PERFORMANCE("Fill Operations", deviceName, fillTime, "t1.fill(1.0f) + t2.fill(2.0f)");
 
     start = std::chrono::high_resolution_clock::now();
     t1.addTensor(t2);
     end = std::chrono::high_resolution_clock::now();
-    std::cout << deviceName << " Add Tensor Time: "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
-              << " us" << std::endl;
+    long long addTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    
+    std::cout << deviceName << " Add Tensor Time: " << addTime << " us" << std::endl;
+    LOG_PERFORMANCE("Add Tensor", deviceName, addTime, "");
 
     start = std::chrono::high_resolution_clock::now();
     t1.addScalar(3.0f);
@@ -150,23 +155,32 @@ void testTensorOps(Tensor& t1, Tensor& t2, const std::string& deviceName) {
 }
 
 int main() {
+    // Initialize logger
+    Logger::getInstance().initialize("traffic_sign_app.log", LogLevel::INFO, true);
+    LOG_INFO("=== Traffic Sign Recognition Application Starting ===");
+    
     const std::vector<int> shape = {4, 3, 512, 512};
+    LOG_INFO("Creating tensors with shape: [4, 3, 512, 512]");
 
     Tensor inputCpu(shape, Device::CPU);
+    LOG_INFO("Created CPU input tensor");
 
     inputCpu.fill(1.0f);
+    LOG_DEBUG("Filled CPU tensor with 1.0");
 
     Tensor bias({3}, Device::CPU);
     bias.edit({0}, 2);
     bias.edit({1}, 3);
     bias.edit({2}, 4);
+    LOG_INFO("Created bias tensor with values [2, 3, 4]");
 
     auto start = std::chrono::high_resolution_clock::now();
     inputCpu.addBias(bias);
     auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "CPU Bias Time: "
-              << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
-              << " microseconds" << std::endl;
+    long long cpuBiasTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    
+    std::cout << "CPU Bias Time: " << cpuBiasTime << " microseconds" << std::endl;
+    LOG_PERFORMANCE("CPU Bias Addition", "CPU", cpuBiasTime, "4x3x512x512 tensor with 3-channel bias");
 
     // inputCpu.printImageTensor();
 
@@ -178,23 +192,33 @@ int main() {
 #ifdef USE_CUDA
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
+    LOG_INFO("CUDA device count: " + std::to_string(deviceCount));
+    
     if (deviceCount > 0) {
+        LOG_INFO("Creating GPU tensors");
         Tensor inputGpu(shape, Device::GPU);
+        LOG_INFO("Created GPU input tensor");
 
         inputGpu.fill(1.0f);
+        LOG_DEBUG("Filled GPU tensor with 1.0");
 
         Tensor biasGpu({3}, Device::GPU);
         biasGpu.edit({0}, 2);
         biasGpu.edit({1}, 3);
         biasGpu.edit({2}, 4);
+        LOG_INFO("Created GPU bias tensor with values [2, 3, 4]");
 
         start = std::chrono::high_resolution_clock::now();
         inputGpu.addBias(biasGpu);
         end = std::chrono::high_resolution_clock::now();
-        std::cout << "GPU Bias Time: "
-                  << std::chrono::duration_cast<std::chrono::microseconds>(end - start).count()
-                  << " microseconds" << std::endl;
-
+        long long gpuBiasTime = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        
+        std::cout << "GPU Bias Time: " << gpuBiasTime << " microseconds" << std::endl;
+        LOG_PERFORMANCE("GPU Bias Addition", "GPU", gpuBiasTime, "4x3x512x512 tensor with 3-channel bias");
+        
+        // Log performance comparison
+        double speedup = (double)cpuBiasTime / gpuBiasTime;
+        LOG_INFO("GPU speedup over CPU: " + std::to_string(speedup) + "x");
 
         // inputGpu.printImageTensor();
 
@@ -203,8 +227,11 @@ int main() {
         // testTensorOps(gpuT1, gpuT2, "GPU");
     } else {
         std::cout << "No CUDA device found. Skipping GPU tests." << std::endl;
+        LOG_WARNING("No CUDA device found. Skipping GPU tests.");
     }
 #endif
 
+    LOG_INFO("=== Traffic Sign Recognition Application Completed Successfully ===");
+    Logger::getInstance().close();
     return 0;
 }

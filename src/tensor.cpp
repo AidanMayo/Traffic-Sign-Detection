@@ -1,4 +1,5 @@
 #include "tensor.hpp"
+#include "logger.hpp"
 #include <algorithm>
 #include <iostream>
 #include <ostream>
@@ -13,6 +14,11 @@ Tensor::Tensor(const std::vector<int>& shape_, Device dev) : shape(shape_), devi
 	cpuGrad.resize(totalSize, 0.0f);
 	computeStrides();
 
+    // Log tensor creation
+    std::string deviceStr = (device == Device::CPU) ? "CPU" : "GPU";
+    LOG_TENSOR_OP("CREATE", deviceStr, shape, true, "");
+    LOG_MEMORY_ALLOC("CPU", totalSize * sizeof(float) * 2, "Tensor data and gradients");
+
 #ifdef USE_CUDA
 	if (device == Device::GPU) {
 		toGpu();
@@ -21,6 +27,11 @@ Tensor::Tensor(const std::vector<int>& shape_, Device dev) : shape(shape_), devi
 }
 
 Tensor::~Tensor() {
+    // Log tensor destruction
+    std::string deviceStr = (device == Device::CPU) ? "CPU" : "GPU";
+    LOG_TENSOR_OP("DESTROY", deviceStr, shape, true, "");
+    LOG_MEMORY_DEALLOC("CPU", totalSize * sizeof(float) * 2, "Tensor data and gradients");
+
 #ifdef USE_CUDA
   freeGpuMemory();
 #endif
@@ -374,6 +385,9 @@ void Tensor::zeroGradCpu() {
 
 
 void Tensor::fill(const float val) {
+    std::string deviceStr = (device == Device::CPU) ? "CPU" : "GPU";
+    LOG_DEBUG("Filling tensor with value: " + std::to_string(val));
+    
   	if (device == Device::CPU) {
   	    fillCpu(val);
   	}
@@ -382,10 +396,14 @@ void Tensor::fill(const float val) {
         fillGpu(val);
   	}
 #endif
+    
+    LOG_TENSOR_OP("FILL", deviceStr, shape, true, "");
 }
 
 void Tensor::addTensor(const Tensor& other) {
   	assert(shape == other.shape);
+    std::string deviceStr = (device == Device::CPU) ? "CPU" : "GPU";
+    
     if (device == Device::CPU) {
         addTensorCpu(other);
     }
@@ -394,6 +412,8 @@ void Tensor::addTensor(const Tensor& other) {
         addTensorGpu(other);
     }
 #endif
+    
+    LOG_TENSOR_OP("ADD_TENSOR", deviceStr, shape, true, "");
 }
 
 void Tensor::addScalar(const float val) {
@@ -411,6 +431,10 @@ void Tensor::addBias(const Tensor& bias) {
     assert(shape.size() == 4); // image channeled bias
     assert(bias.shape.size() == 1); // bias application
     assert(shape[1] == bias.shape[0]); // bias can be properly added
+    
+    std::string deviceStr = (device == Device::CPU) ? "CPU" : "GPU";
+    LOG_DEBUG("Adding bias to tensor with shape " + std::to_string(shape[1]) + " channels");
+    
     if (device == Device::CPU) {
         addBiasCpu(bias);
     }
@@ -419,6 +443,8 @@ void Tensor::addBias(const Tensor& bias) {
         addBiasGpu(bias);
     }
 #endif
+    
+    LOG_TENSOR_OP("ADD_BIAS", deviceStr, shape, true, "");
 }
 
 void Tensor::subtractTensor(const Tensor& other) {
