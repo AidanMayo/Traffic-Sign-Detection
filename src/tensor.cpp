@@ -4,6 +4,7 @@
 #include <iostream>
 #include <ostream>
 #include <set>
+#include <cmath>
 
 Tensor::Tensor() : device(Device::CPU) {}
 
@@ -327,19 +328,19 @@ void Tensor::negateCpu() { // bitwise hacking not allowed
 
 void Tensor::ReLUCpu() {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
-        cpuData[i] = std::fmaxf(cpuData[i], 0.0f);
+        cpuData[i] = fmaxf(cpuData[i], 0.0f);
     }
 }
 
 void Tensor::sigmoidCpu() {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
-        cpuData[i] = 1.0f / (1.0f + std::expf(-cpuData[i]));
+        cpuData[i] = 1.0f / (1.0f + expf(-cpuData[i]));
     }
 }
 
 void Tensor::tanhCpu() {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
-        cpuData[i] = std::tanhf(cpuData[i]);
+        cpuData[i] = tanhf(cpuData[i]);
     }
 }
 
@@ -351,7 +352,7 @@ void Tensor::LReLUCpu(const float alpha) {
 
 void Tensor::ELUCpu(const float alpha) {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
-        cpuData[i] = cpuData[i] < 0 ? alpha * (std::expf(cpuData[i]) - 1) : cpuData[i];
+        cpuData[i] = cpuData[i] < 0 ? alpha * (expf(cpuData[i]) - 1) : cpuData[i];
     }
 }
 
@@ -363,19 +364,19 @@ void Tensor::squareCpu() {
 
 void Tensor::sqrtCpu() {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
-        cpuData[i] = std::sqrtf(cpuData[i]);
+        cpuData[i] = sqrtf(cpuData[i]);
     }
 }
 
 void Tensor::expCpu() {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
-        cpuData[i] = std::expf(cpuData[i]);
+        cpuData[i] = expf(cpuData[i]);
     }
 }
 
 void Tensor::logCpu() {
     for (std::size_t i = 0; i < cpuData.size(); ++i) {
-        cpuData[i] = std::logf(cpuData[i]);
+        cpuData[i] = logf(cpuData[i]);
     }
 }
 

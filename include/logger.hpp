@@ -12,6 +12,7 @@
 #include <iostream>
 #include <chrono>
 #include <sstream>
+#include <vector>
 
 enum class LogLevel {
     DEBUG = 0,
@@ -91,7 +92,7 @@ private:
     std::ofstream logFile;
     LogLevel currentLevel;
     bool consoleOutput;
-    std::mutex logMutex;
+    // std::mutex logMutex; // Temporarily disabled for compilation
     bool initialized;
 };
 

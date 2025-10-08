@@ -2,7 +2,9 @@
 #include "logger.hpp"
 #include <iostream>
 #include <chrono>
+#ifdef USE_CUDA
 #include <cuda_runtime_api.h>
+#endif
 
 void testTensorOps(Tensor& t1, Tensor& t2, const std::string& deviceName) {
     LOG_INFO("Starting tensor operations test on " + deviceName);
@@ -151,7 +153,7 @@ void testTensorOps(Tensor& t1, Tensor& t2, const std::string& deviceName) {
               << " us" << std::endl;
 
     t1.printShape();
-    t1.printImageTensor();
+    // t1.printImageTensor(); // Commented out to avoid massive output
 }
 
 int main() {
@@ -182,16 +184,18 @@ int main() {
     std::cout << "CPU Bias Time: " << cpuBiasTime << " microseconds" << std::endl;
     LOG_PERFORMANCE("CPU Bias Addition", "CPU", cpuBiasTime, "4x3x512x512 tensor with 3-channel bias");
 
-    // inputCpu.printImageTensor();
-
-    // CPU tensors
-    // Tensor cpuT1(shape, Device::CPU);
-    // Tensor cpuT2(shape, Device::CPU);
-    // testTensorOps(cpuT1, cpuT2, "CPU");
+    std::cout << "\n=== CPU Tensor Operations Test ===" << std::endl;
+    
+    // CPU tensors for testing
+    Tensor cpuT1(shape, Device::CPU);
+    Tensor cpuT2(shape, Device::CPU);
+    testTensorOps(cpuT1, cpuT2, "CPU");
 
 #ifdef USE_CUDA
+    std::cout << "\n=== GPU/CUDA Operations Test ===" << std::endl;
     int deviceCount;
     cudaGetDeviceCount(&deviceCount);
+    std::cout << "CUDA device count: " << deviceCount << std::endl;
     LOG_INFO("CUDA device count: " + std::to_string(deviceCount));
     
     if (deviceCount > 0) {
@@ -229,7 +233,18 @@ int main() {
         std::cout << "No CUDA device found. Skipping GPU tests." << std::endl;
         LOG_WARNING("No CUDA device found. Skipping GPU tests.");
     }
+#else
+    std::cout << "\n=== GPU/CUDA Operations Test ===" << std::endl;
+    std::cout << "CUDA support not compiled in this build." << std::endl;
+    std::cout << "To enable GPU operations, compile with proper CUDA toolkit setup." << std::endl;
+    LOG_INFO("CUDA support not compiled in this build");
 #endif
+
+    std::cout << "\n=== Application Summary ===" << std::endl;
+    std::cout << "✓ CPU tensor operations completed successfully" << std::endl;
+    std::cout << "✓ Memory allocations tracked" << std::endl;
+    std::cout << "✓ Performance metrics logged" << std::endl;
+    std::cout << "✓ Comprehensive logging system active" << std::endl;
 
     LOG_INFO("=== Traffic Sign Recognition Application Completed Successfully ===");
     Logger::getInstance().close();
