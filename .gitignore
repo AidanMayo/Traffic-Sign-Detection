@@ -1,0 +1,89 @@
+# ----- Build Output -----
+/build/
+*/build/
+app/test/build/
+.cxx/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# ----- Gradle -----
+.gradle/
+gradlew*
+gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+!gradle/wrapper/gradle-wrapper.jar
+
+# ----- Android Studio / IntelliJ -----
+.idea/*
+!.idea/codeStyles
+!.idea/runConfigurations
+*.iml
+
+# Local environment config (SDK/NDK paths - must not be shared)
+local.properties
+
+# ----- C++ Object and Binary Artifacts -----
+*.o
+*.obj
+*.lo
+*.la
+*.al
+
+# Dynamic / Shared libraries
+*.so
+*.dylib
+*.dll
+
+# Static libraries
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+
+# ----- CMake / MSVC / Ninja Build Artifacts -----
+*.pdb
+*.ilk
+*.tlog
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.cache
+*.cmake
+*.recipe
+
+# CUDA build artifacts
+*.cubin
+*.ptx
+*.fatbin
+
+# ----- Logs / Temp Files -----
+*.log
+*.tmp
+*.swp
+*.swo
+*.bak
+
+# ----- IDE specific -----
+.vscode/
+
+# ----- OS Trash -----
+.DS_Store
+Thumbs.db
+ehthumbs.db
+
+# ----- APKs / Bundles (generated outputs) -----
+*.apk
+*.aab
+
+# ----- Signing Keys (NEVER COMMIT THESE) -----
+*.keystore
+*.jks
