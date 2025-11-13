@@ -2,10 +2,6 @@
 
 Basic Android app for real-time traffic sign recognition using camera feed.
 
-## Project Overview
-
-This is a minimal Android application built with Kotlin that provides a foundation for traffic sign recognition. The app displays a live camera feed and is ready for ML model integration to detect and classify traffic signs in real-time.
-
 ## Features
 
 - **Live Camera Preview**: Real-time camera feed using CameraX
@@ -13,10 +9,6 @@ This is a minimal Android application built with Kotlin that provides a foundati
 - **Detection Overlay**: Custom view for drawing bounding boxes and labels
 
 - **Text-to-Speech**: Voice announcements for detected signs
-
-- **Navy Blue Theme**: Modern navy blue color scheme
-
-- **ML-Ready Architecture**: Repository pattern ready for model integration
 
 ## Project Structure
 
@@ -78,29 +70,12 @@ This is a minimal Android application built with Kotlin that provides a foundati
 
 #### Values
 
-- **`values/colors.xml`**: Color definitions
-
-  - Navy blue primary colors (`navy_500`, `navy_700`)
-
-  - Blue secondary colors (`blue_200`, `blue_700`)
-
 - **`values/strings.xml`**: String resources
 
   - App name, permission messages
 
 - **`values/themes.xml`**: App theme configuration
 
-  - Material Design theme with navy blue color scheme
-
-#### Drawables
-
-- **`drawable/ic_launcher_foreground.xml`**: Launcher icon foreground
-
-#### Mipmaps
-
-- **`mipmap-anydpi-v26/ic_launcher.xml`**: Adaptive launcher icon
-
-- **`mipmap-anydpi-v26/ic_launcher_round.xml`**: Round launcher icon
 
 #### XML Configuration
 
